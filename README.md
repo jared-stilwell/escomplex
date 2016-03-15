@@ -12,13 +12,20 @@ The back-end for [complexity-report].
 * [Links to research](#links-to-research)
 * [Installation](#installation)
 * [Usage](#usage)
-    * [Arguments](#arguments)
-        * [ast](#ast)
-        * [walker](#walker)
-        * [options](#options)
-    * [Result](#result)
-        * [For a single module](#for-a-single-module)
-        * [For multiple modules](#for-multiple-modules)
+    * [Analyze](#analyze)
+        * [Arguments](#arguments)
+            * [source](#source)
+            * [options](#options)
+        * [Result](#result)
+            * [For a single module](#for-a-single-module)
+            * [For multiple modules](#for-multiple-modules)
+    * [processResults](#processResults)
+        * [Arguments](#arguments)
+            * [source](#source)
+            * [options](#options)
+        * [Result](#result)
+            * [For a single module](#for-a-single-module)
+            * [For multiple modules](#for-multiple-modules)
 * [Related projects](#related-projects)
 * [Development](#development)
 * [License](#license)
@@ -151,13 +158,13 @@ const result = escomplex.analyse(source, options);
 
 #### Arguments
 
-##### ast
+##### source
 
 The first argument, `source`, must be either a string or an array of objects. If it is an array, each object should include a `path` property that is either a relative or full path to the equivalent module on disk and a `code` with the contents of the module. As well as identifying each of the result objects, the path property is also used during dependency analysis.
 
 ##### options
 
-The third argument, `options`,
+The second argument, `options`,
 is an optional object
 containing properties that modify
 some of the complexity calculations:
@@ -227,8 +234,8 @@ with some variation depending on the given options.
 
 #### For a single module
 
-If a single abstract syntax tree object
-is passed in the `ast` argument,
+If a single string
+is passed in the `source` argument,
 the result will be a report object
 that looks like the following:
 
