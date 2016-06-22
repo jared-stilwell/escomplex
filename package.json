@@ -45,7 +45,7 @@
     "debug": "^2.2.0",
     "espree": "^3.1.5",
     "lodash": "^4.13.1",
-    "snyk": "1.14.3"
+    "snyk": "1.15.0"
   },
   "devDependencies": {
     "chai": "3.5.0",
