@@ -58,7 +58,7 @@
     "nyc": "^6.6.1",
     "sinon": "1.17.4",
     "spooks": "2.0.0",
-    "snyk": "1.15.0"
+    "snyk": "1.15.2"
   },
   "scripts": {
     "lint": "eslint test src",
