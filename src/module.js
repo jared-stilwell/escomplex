@@ -7,9 +7,6 @@ var debug = require('debug')('escomplex:module');
 
 exports.analyse = analyse;
 
-var processOperators = processOperatorsOrOperands('operators');
-var processOperands = processOperatorsOrOperands('operands');
-
 function analyse (ast, walker, options) {
     // TODO: Asynchronise
 
@@ -43,8 +40,8 @@ function analyse (ast, walker, options) {
     function processNode (node, syntax) {
         processLloc(node, convertToNumber(syntax.lloc, node), currentReport);
         processCyclomatic(node, convertToNumber(syntax.cyclomatic, node), currentReport);
-        processOperators(node, syntax.operators, currentReport);
-        processOperands(node, syntax.operands, currentReport);
+        processOperators(node, syntax, currentReport);
+        processOperands(node, syntax, currentReport);
 
         if (processDependencies(node, syntax, clearDependencies)) {
             // HACK: This will fail with async or if other syntax than CallExpression introduces dependencies.
@@ -84,6 +81,7 @@ function getDefaultSettings () {
 }
 
 function createReport (lines) {
+    debug('aggregate report: ' + JSON.stringify(createFunctionReport(undefined, lines, 0), null, 2));
     return {
         aggregate: createFunctionReport(undefined, lines, 0),
         functions: [],
@@ -104,9 +102,11 @@ function createFunctionReport (name, lines, params) {
 
     if (check.object(lines)) {
         debug('Calculating line information...');
-        debug(JSON.stringify(lines));
+        debug('start line: ' + lines.start.line);
+        debug('end line: ' + lines.end.line);
         result.line = lines.start.line;
         result.sloc.physical = lines.end.line - lines.start.line + 1;
+        debug('physical lines: ' + result.sloc.physical);
     }
 
     return result;
@@ -171,55 +171,101 @@ function processCyclomatic (node, cyclomaticAmount, currentReport) {
     }
 }
 
-/**
- * refactoring of processOperators and processOperands
- * @param type
- * @returns {processOperators}
- */
-function processOperatorsOrOperands(type) {
-    // type can be operators or operands
-    /**
-     * refactored method function processHalsteadMetric (node, operatorsOrOperands, type, currentReport)
-     */
-    return function (node, operatorsOrOperands, currentReport) {
-        if (!Array.isArray(operatorsOrOperands)) {
-            return;
-        }
-        /**
-         * oooItem is the short variant of operatorsOrOperandsItem
-         */
-        operatorsOrOperands.forEach(function (oooItem) {
-            var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
-            if (check.function(oooItem.filter) && !oooItem.filter(node)) {
-                return;
+
+function incrementCounter (node, syntax, name, incrementFn, currentReport) {
+    var amount = syntax[name];
+
+    if (check.number(amount)) {
+        incrementFn(currentReport, amount);
+    } else if (check.function(amount)) {
+        incrementFn(currentReport, amount(node));
+    }
+}
+
+function incrementLogicalSloc (currentReport, amount) {
+    debug('incrementing sloc by ' + amount);
+    report.aggregate.sloc.logical += amount;
+
+    if (currentReport) {
+        currentReport.sloc.logical += amount;
+    }
+}
+
+
+function incrementCyclomatic (currentReport, amount) {
+    report.aggregate.cyclomatic += amount;
+
+    if (currentReport) {
+        currentReport.cyclomatic += amount;
+    }
+}
+
+function processOperators (node, syntax, currentReport) {
+    processHalsteadMetric(node, syntax, 'operators', currentReport);
+}
+
+function processOperands (node, syntax, currentReport) {
+    processHalsteadMetric(node, syntax, 'operands', currentReport);
+}
+
+function processHalsteadMetric (node, syntax, metric, currentReport) {
+    if (check.array(syntax[metric])) {
+        syntax[metric].forEach(function (s) {
+            var identifier;
+
+            if (check.function(s.identifier)) {
+                identifier = s.identifier(node);
+            } else {
+                identifier = s.identifier;
             }
 
-            // halsteadItemEncountered(currentReport, type, identifier);
-            var actualReport  = currentReport ? currentReport : report.aggregate;
-
-
-            // incrementHalsteadItems(actualReport, type, identifier);
-            //incrementTotalHalsteadItems(report, 'operators');
-            actualReport.halstead[type].total += 1;
-
-
-            // incrementDistinctHalsteadItems(actualReport, type, identifier);
-            var saveIdentifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
-            if (actualReport.halstead[type].identifiers.indexOf(saveIdentifier) !== -1) {
-                return;
+            if (check.function(s.filter) === false || s.filter(node) === true) {
+                halsteadItemEncountered(currentReport, metric, identifier);
             }
-
-            // recordDistinctHalsteadMetric(actualReport, type, saveIdentifier);
-            actualReport.halstead[type].identifiers.push(saveIdentifier);
-
-
-            // incrementHalsteadMetric(actualReport, type, 'distinct');
-            actualReport.halstead[type].distinct += 1;
-
         });
     }
 }
 
+function halsteadItemEncountered (currentReport, metric, identifier) {
+    if (currentReport) {
+        incrementHalsteadItems(currentReport, metric, identifier);
+    }
+
+    incrementHalsteadItems(report.aggregate, metric, identifier);
+}
+
+function incrementHalsteadItems (baseReport, metric, identifier) {
+    incrementDistinctHalsteadItems(baseReport, metric, identifier);
+    incrementTotalHalsteadItems(baseReport, metric);
+}
+
+function incrementDistinctHalsteadItems (baseReport, metric, identifier) {
+    if (Object.prototype.hasOwnProperty(identifier)) {
+        // Avoid clashes with built-in property names.
+        incrementDistinctHalsteadItems(baseReport, metric, '_' + identifier);
+    } else if (isHalsteadMetricDistinct(baseReport, metric, identifier)) {
+        recordDistinctHalsteadMetric(baseReport, metric, identifier);
+        incrementHalsteadMetric(baseReport, metric, 'distinct');
+    }
+}
+
+function isHalsteadMetricDistinct (baseReport, metric, identifier) {
+    return baseReport.halstead[metric].identifiers.indexOf(identifier) === -1;
+}
+
+function recordDistinctHalsteadMetric (baseReport, metric, identifier) {
+    baseReport.halstead[metric].identifiers.push(identifier);
+}
+
+function incrementHalsteadMetric (baseReport, metric, type) {
+    if (baseReport) {
+        baseReport.halstead[metric][type] += 1;
+    }
+}
+
+function incrementTotalHalsteadItems (baseReport, metric) {
+    incrementHalsteadMetric(baseReport, metric, 'total');
+}
 
 function processDependencies (node, syntax, clearDependencies) {
     var dependencies;
@@ -266,11 +312,11 @@ function calculateMetrics (settings) {
 
     averages = sums.map(function (sum) { return sum / count; });
 
-    report.maintainability = calculateMaintainabilityIndex(
+    calculateMaintainabilityIndex(
         averages[indices.effort],
         averages[indices.cyclomatic],
         averages[indices.loc],
-        settings.newmi
+        settings
     );
 
     Object.keys(indices).forEach(function (index) {
@@ -301,11 +347,11 @@ function calculateHalsteadMetrics (data) {
 function nilHalsteadMetrics (data) {
     data.vocabulary =
         data.difficulty =
-        data.volume =
-        data.effort =
-        data.bugs =
-        data.time =
-            0;
+            data.volume =
+                data.effort =
+                    data.bugs =
+                        data.time =
+                            0;
 }
 
 function sumMaintainabilityMetrics (sums, indices, data) {
@@ -315,25 +361,22 @@ function sumMaintainabilityMetrics (sums, indices, data) {
     sums[indices.params] += data.params;
 }
 
-function calculateMaintainabilityIndex (averageEffort, averageCyclomatic, averageLoc, newmi) {
+function calculateMaintainabilityIndex (averageEffort, averageCyclomatic, averageLoc, settings) {
     if (averageCyclomatic === 0) {
         throw new Error('Encountered function with cyclomatic complexity zero!');
     }
 
-    var maintainability =
+    report.maintainability =
         171 -
         (3.42 * Math.log(averageEffort)) -
         (0.23 * Math.log(averageCyclomatic)) -
         (16.2 * Math.log(averageLoc));
 
-    if (maintainability > 171) {
-        maintainability = 171;
+    if (report.maintainability > 171) {
+        report.maintainability = 171;
     }
 
-    if (newmi) {
-        maintainability = Math.max(0, (maintainability * 100) / 171);
+    if (settings.newmi) {
+        report.maintainability = Math.max(0, (report.maintainability * 100) / 171);
     }
-
-    return maintainability;
 }
-
