@@ -191,16 +191,16 @@ function processOperatorsOrOperands(type) {
             var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
             if (!check.function(oooItem.filter) || oooItem.filter(node) === true) {
                 // halsteadItemEncountered
-                var report  = currentReport ? currentReport : report.aggregate;
+                var actualReport  = currentReport ? currentReport : report.aggregate;
                 // incrementHalsteadItems
                 //incrementDistinctHalsteadItems(report, 'operators', identifier);
                 var saveIdentifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
-                report.halstead[type].identifiers.push(saveIdentifier);
+                actualReport.halstead[type].identifiers.push(saveIdentifier);
                 //recordDistinctHalsteadMetric(report, 'operators', saveIdentifier);
                 //incrementHalsteadMetric(baseReport, metric, 'distinct');
-                report.halstead[type].distinct += 1;
+                actualReport.halstead[type].distinct += 1;
                 //incrementTotalHalsteadItems(report, 'operators');
-                report.halstead[type].total += 1;
+                actualReport.halstead[type].total += 1;
             }
         });
     }
