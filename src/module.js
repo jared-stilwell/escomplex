@@ -150,6 +150,7 @@ function convertToNumber(amount, node) {
  * @param currentReport
  */
 function processLloc (node, llocAmount, currentReport) {
+    //incrementCounter(node, syntax, 'lloc', incrementLogicalSloc, currentReport);
     report.aggregate.sloc.logical += llocAmount;
     if (currentReport) {
         currentReport.sloc.logical += llocAmount;
@@ -178,7 +179,7 @@ function processCyclomatic (node, cyclomaticAmount, currentReport) {
 function processOperatorsOrOperands(type) {
     // type can be operators or operands
     /**
-     *
+     * refactored method function processHalsteadMetric (node, operatorsOrOperands, type, currentReport)
      */
     return function (node, operatorsOrOperands, currentReport) {
         if (!Array.isArray(operatorsOrOperands)) {
@@ -189,19 +190,32 @@ function processOperatorsOrOperands(type) {
          */
         operatorsOrOperands.forEach(function (oooItem) {
             var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
-            if (!check.function(oooItem.filter) || oooItem.filter(node) === true) {
-                // halsteadItemEncountered
-                var actualReport  = currentReport ? currentReport : report.aggregate;
-                // incrementHalsteadItems
-                //incrementDistinctHalsteadItems(report, 'operators', identifier);
-                var saveIdentifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
-                actualReport.halstead[type].identifiers.push(saveIdentifier);
-                //recordDistinctHalsteadMetric(report, 'operators', saveIdentifier);
-                //incrementHalsteadMetric(baseReport, metric, 'distinct');
-                actualReport.halstead[type].distinct += 1;
-                //incrementTotalHalsteadItems(report, 'operators');
-                actualReport.halstead[type].total += 1;
+            if (check.function(oooItem.filter) && !oooItem.filter(node)) {
+                return;
             }
+
+            // halsteadItemEncountered(currentReport, type, identifier);
+            var actualReport  = currentReport ? currentReport : report.aggregate;
+
+
+            // incrementHalsteadItems(actualReport, type, identifier);
+            //incrementTotalHalsteadItems(report, 'operators');
+            actualReport.halstead[type].total += 1;
+
+
+            // incrementDistinctHalsteadItems(actualReport, type, identifier);
+            var saveIdentifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
+            if (actualReport.halstead[type].identifiers.indexOf(saveIdentifier) !== -1) {
+                return;
+            }
+
+            // recordDistinctHalsteadMetric(actualReport, type, saveIdentifier);
+            actualReport.halstead[type].identifiers.push(saveIdentifier);
+
+
+            // incrementHalsteadMetric(actualReport, type, 'distinct');
+            actualReport.halstead[type].distinct += 1;
+
         });
     }
 }
