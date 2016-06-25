@@ -7,6 +7,9 @@ var debug = require('debug')('escomplex:module');
 
 exports.analyse = analyse;
 
+var processOperators = processOperatorsOrOperands('operators');
+var processOperands = processOperatorsOrOperands('operands');
+
 function analyse (ast, walker, options) {
     // TODO: Asynchronise
 
@@ -38,10 +41,10 @@ function analyse (ast, walker, options) {
     return report;
 
     function processNode (node, syntax) {
-        processLloc(node, syntax, currentReport);
-        processCyclomatic(node, syntax, currentReport);
-        processOperators(node, syntax, currentReport);
-        processOperands(node, syntax, currentReport);
+        processLloc(node, convertToNumber(syntax.lloc, node), currentReport);
+        processCyclomatic(node, convertToNumber(syntax.cyclomatic, node), currentReport);
+        processOperators(node, syntax.operators, currentReport);
+        processOperands(node, syntax.operands, currentReport);
 
         if (processDependencies(node, syntax, clearDependencies)) {
             // HACK: This will fail with async or if other syntax than CallExpression introduces dependencies.
@@ -124,107 +127,85 @@ function createInitialHalsteadItemState () {
     };
 }
 
-function processLloc (node, syntax, currentReport) {
-    incrementCounter(node, syntax, 'lloc', incrementLogicalSloc, currentReport);
-}
-
-function incrementCounter (node, syntax, name, incrementFn, currentReport) {
-    var amount = syntax[name];
-
-    if (check.number(amount)) {
-        incrementFn(currentReport, amount);
-    } else if (check.function(amount)) {
-        incrementFn(currentReport, amount(node));
+/**
+ * check if amount a function, then call it with the given node and return a number
+ * @param amount
+ * @param node
+ * @returns {*}
+ */
+function convertToNumber(amount, node) {
+    if (check.function(amount)) {
+        amount = amount(node);
     }
+    if (!check.number(amount)) {
+        return 0;
+    }
+    return amount;
 }
 
-function incrementLogicalSloc (currentReport, amount) {
-    debug('incrementing sloc by ' + amount);
-    report.aggregate.sloc.logical += amount;
-
+/**
+ * refactored function for lloc processing
+ * @param node
+ * @param llocAmount
+ * @param currentReport
+ */
+function processLloc (node, llocAmount, currentReport) {
+    report.aggregate.sloc.logical += llocAmount;
     if (currentReport) {
-        currentReport.sloc.logical += amount;
+        currentReport.sloc.logical += llocAmount;
     }
 }
 
-function processCyclomatic (node, syntax, currentReport) {
-    incrementCounter(node, syntax, 'cyclomatic', incrementCyclomatic, currentReport);
-}
 
-function incrementCyclomatic (currentReport, amount) {
-    report.aggregate.cyclomatic += amount;
-
+/**
+ * refactored function for cyclomatic processing
+ * @param node
+ * @param cyclomaticAmount
+ * @param currentReport
+ */
+function processCyclomatic (node, cyclomaticAmount, currentReport) {
+    report.aggregate.cyclomatic += cyclomaticAmount;
     if (currentReport) {
-        currentReport.cyclomatic += amount;
+        currentReport.cyclomatic += cyclomaticAmount;
     }
 }
 
-function processOperators (node, syntax, currentReport) {
-    processHalsteadMetric(node, syntax, 'operators', currentReport);
-}
-
-function processOperands (node, syntax, currentReport) {
-    processHalsteadMetric(node, syntax, 'operands', currentReport);
-}
-
-function processHalsteadMetric (node, syntax, metric, currentReport) {
-    if (check.array(syntax[metric])) {
-        syntax[metric].forEach(function (s) {
-            var identifier;
-
-            if (check.function(s.identifier)) {
-                identifier = s.identifier(node);
-            } else {
-                identifier = s.identifier;
-            }
-
-            if (check.function(s.filter) === false || s.filter(node) === true) {
-                halsteadItemEncountered(currentReport, metric, identifier);
+/**
+ * refactoring of processOperators and processOperands
+ * @param type
+ * @returns {processOperators}
+ */
+function processOperatorsOrOperands(type) {
+    // type can be operators or operands
+    /**
+     *
+     */
+    return function (node, operatorsOrOperands, currentReport) {
+        if (!Array.isArray(operatorsOrOperands)) {
+            return;
+        }
+        /**
+         * oooItem is the short variant of operatorsOrOperandsItem
+         */
+        operatorsOrOperands.forEach(function (oooItem) {
+            var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
+            if (!check.function(oooItem.filter) || oooItem.filter(node) === true) {
+                // halsteadItemEncountered
+                var report  = currentReport ? currentReport : report.aggregate;
+                // incrementHalsteadItems
+                //incrementDistinctHalsteadItems(report, 'operators', identifier);
+                var saveIdentifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
+                report.halstead[type].identifiers.push(saveIdentifier);
+                //recordDistinctHalsteadMetric(report, 'operators', saveIdentifier);
+                //incrementHalsteadMetric(baseReport, metric, 'distinct');
+                report.halstead[type].distinct += 1;
+                //incrementTotalHalsteadItems(report, 'operators');
+                report.halstead[type].total += 1;
             }
         });
     }
 }
 
-function halsteadItemEncountered (currentReport, metric, identifier) {
-    if (currentReport) {
-        incrementHalsteadItems(currentReport, metric, identifier);
-    }
-
-    incrementHalsteadItems(report.aggregate, metric, identifier);
-}
-
-function incrementHalsteadItems (baseReport, metric, identifier) {
-    incrementDistinctHalsteadItems(baseReport, metric, identifier);
-    incrementTotalHalsteadItems(baseReport, metric);
-}
-
-function incrementDistinctHalsteadItems (baseReport, metric, identifier) {
-    if (Object.prototype.hasOwnProperty(identifier)) {
-        // Avoid clashes with built-in property names.
-        incrementDistinctHalsteadItems(baseReport, metric, '_' + identifier);
-    } else if (isHalsteadMetricDistinct(baseReport, metric, identifier)) {
-        recordDistinctHalsteadMetric(baseReport, metric, identifier);
-        incrementHalsteadMetric(baseReport, metric, 'distinct');
-    }
-}
-
-function isHalsteadMetricDistinct (baseReport, metric, identifier) {
-    return baseReport.halstead[metric].identifiers.indexOf(identifier) === -1;
-}
-
-function recordDistinctHalsteadMetric (baseReport, metric, identifier) {
-    baseReport.halstead[metric].identifiers.push(identifier);
-}
-
-function incrementHalsteadMetric (baseReport, metric, type) {
-    if (baseReport) {
-        baseReport.halstead[metric][type] += 1;
-    }
-}
-
-function incrementTotalHalsteadItems (baseReport, metric) {
-    incrementHalsteadMetric(baseReport, metric, 'total');
-}
 
 function processDependencies (node, syntax, clearDependencies) {
     var dependencies;
