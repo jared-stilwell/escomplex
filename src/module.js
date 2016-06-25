@@ -10,7 +10,7 @@ exports.analyse = analyse;
 var processOperators = processOperatorsOrOperands('operators');
 var processOperands = processOperatorsOrOperands('operands');
 
-function analyse (ast, walker, options) {
+function analyse(ast, walker, options) {
     // TODO: Asynchronise
 
     var settings, currentReport, clearDependencies = true, scopeStack = [];
@@ -40,7 +40,7 @@ function analyse (ast, walker, options) {
 
     return report;
 
-    function processNode (node, syntax) {
+    function processNode(node, syntax) {
         processLloc(node, convertToNumber(syntax.lloc, node), currentReport);
         processCyclomatic(node, convertToNumber(syntax.cyclomatic, node), currentReport);
         processOperators(node, syntax.operators, currentReport);
@@ -53,7 +53,7 @@ function analyse (ast, walker, options) {
         }
     }
 
-    function createScope (name, loc, parameterCount) {
+    function createScope(name, loc, parameterCount) {
         currentReport = createFunctionReport(name, loc, parameterCount);
 
         report.functions.push(currentReport);
@@ -62,7 +62,7 @@ function analyse (ast, walker, options) {
         scopeStack.push(currentReport);
     }
 
-    function popScope () {
+    function popScope() {
         scopeStack.pop();
 
         if (scopeStack.length > 0) {
@@ -73,7 +73,7 @@ function analyse (ast, walker, options) {
     }
 }
 
-function getDefaultSettings () {
+function getDefaultSettings() {
     return {
         logicalor: true,
         switchcase: true,
@@ -83,7 +83,7 @@ function getDefaultSettings () {
     };
 }
 
-function createReport (lines) {
+function createReport(lines) {
     debug('aggregate report: ' + JSON.stringify(createFunctionReport(undefined, lines, 0), null, 2));
     return {
         aggregate: createFunctionReport(undefined, lines, 0),
@@ -92,7 +92,7 @@ function createReport (lines) {
     };
 }
 
-function createFunctionReport (name, lines, params) {
+function createFunctionReport(name, lines, params) {
     var result = {
         name: name,
         sloc: {
@@ -115,14 +115,14 @@ function createFunctionReport (name, lines, params) {
     return result;
 }
 
-function createInitialHalsteadState () {
+function createInitialHalsteadState() {
     return {
         operators: createInitialHalsteadItemState(),
         operands: createInitialHalsteadItemState()
     };
 }
 
-function createInitialHalsteadItemState () {
+function createInitialHalsteadItemState() {
     return {
         distinct: 0,
         total: 0,
@@ -152,7 +152,7 @@ function convertToNumber(amount, node) {
  * @param llocAmount
  * @param currentReport
  */
-function processLloc (node, llocAmount, currentReport) {
+function processLloc(node, llocAmount, currentReport) {
     //incrementCounter(node, syntax, 'lloc', incrementLogicalSloc, currentReport);
     report.aggregate.sloc.logical += llocAmount;
     if (currentReport) {
@@ -167,7 +167,7 @@ function processLloc (node, llocAmount, currentReport) {
  * @param cyclomaticAmount
  * @param currentReport
  */
-function processCyclomatic (node, cyclomaticAmount, currentReport) {
+function processCyclomatic(node, cyclomaticAmount, currentReport) {
     report.aggregate.cyclomatic += cyclomaticAmount;
     if (currentReport) {
         currentReport.cyclomatic += cyclomaticAmount;
@@ -224,60 +224,60 @@ function processOperatorsOrOperands(type) {
         actualReport.halstead[type].distinct += 1;
     };
 
-        return function(node, operatorsOrOperands, currentReport) {
-            if (!Array.isArray(operatorsOrOperands)) {
-                return;
-            }
+    return function (node, operatorsOrOperands, currentReport) {
+        if (!Array.isArray(operatorsOrOperands)) {
+            return;
+        }
+        /**
+         * oooItem is the short variant of operatorsOrOperandsItem
+         */
+        operatorsOrOperands.forEach(function (oooItem) {
             /**
-             * oooItem is the short variant of operatorsOrOperandsItem
-             */
-            operatorsOrOperands.forEach(function (oooItem) {
-                /**
-                 var identifier;
+             var identifier;
 
-                 if (check.function(s.identifier)) {
+             if (check.function(s.identifier)) {
                     identifier = s.identifier(node);
                 } else {
                     identifier = s.identifier;
                 }
-                 refactored to
-                 */
-                var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
-                //identifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
-                /*
-                 if (check.function(s.filter) === false || s.filter(node) === true) {
-                 halsteadItemEncountered(currentReport, metric, identifier);
-                 }
+             refactored to
+             */
+            var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
+            //identifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
+            /*
+             if (check.function(s.filter) === false || s.filter(node) === true) {
+             halsteadItemEncountered(currentReport, metric, identifier);
+             }
 
-                 !a || b -> a && !b
-                 */
-                if (check.function(oooItem.filter) && !oooItem.filter(node)) {
-                    return;
-                }
-                /*
-                 function halsteadItemEncountered (currentReport, metric, identifier) {
-                 if (currentReport) {
-                 incrementHalsteadItems(currentReport, metric, identifier);
-                 }
+             !a || b -> a && !b
+             */
+            if (check.function(oooItem.filter) && !oooItem.filter(node)) {
+                return;
+            }
+            /*
+             function halsteadItemEncountered (currentReport, metric, identifier) {
+             if (currentReport) {
+             incrementHalsteadItems(currentReport, metric, identifier);
+             }
 
-                 incrementHalsteadItems(report.aggregate, metric, identifier);
-                 }
+             incrementHalsteadItems(report.aggregate, metric, identifier);
+             }
 
-                 var actualReport = currentReport ? currentReport || report.aggregate
-                 incrementHalsteadItems(actualReport, metric, identifier);
-                 */
-                // halsteadItemEncountered(currentReport, type, identifier);
-                if (currentReport) {
-                    buildReport(currentReport, identifier);
-                }
-                buildReport(report.aggregate, identifier);
+             var actualReport = currentReport ? currentReport || report.aggregate
+             incrementHalsteadItems(actualReport, metric, identifier);
+             */
+            // halsteadItemEncountered(currentReport, type, identifier);
+            if (currentReport) {
+                buildReport(currentReport, identifier);
+            }
+            buildReport(report.aggregate, identifier);
 
 
-            });
-        }
+        });
+    }
 }
 
-function processDependencies (node, syntax, clearDependencies) {
+function processDependencies(node, syntax, clearDependencies) {
     var dependencies;
 
     if (check.function(syntax.dependencies)) {
@@ -292,7 +292,7 @@ function processDependencies (node, syntax, clearDependencies) {
     return false;
 }
 
-function calculateMetrics (settings) {
+function calculateMetrics(settings) {
     var count, indices, sums, averages;
 
     count = report.functions.length;
@@ -304,7 +304,7 @@ function calculateMetrics (settings) {
         effort: 2,
         params: 3
     };
-    sums = [ 0, 0, 0, 0 ];
+    sums = [0, 0, 0, 0];
 
     report.functions.forEach(function (functionReport) {
         calculateCyclomaticDensity(functionReport);
@@ -320,7 +320,9 @@ function calculateMetrics (settings) {
         count = 1;
     }
 
-    averages = sums.map(function (sum) { return sum / count; });
+    averages = sums.map(function (sum) {
+        return sum / count;
+    });
 
     calculateMaintainabilityIndex(
         averages[indices.effort],
@@ -334,11 +336,11 @@ function calculateMetrics (settings) {
     });
 }
 
-function calculateCyclomaticDensity (data) {
+function calculateCyclomaticDensity(data) {
     data.cyclomaticDensity = (data.cyclomatic / data.sloc.logical) * 100;
 }
 
-function calculateHalsteadMetrics (data) {
+function calculateHalsteadMetrics(data) {
     data.length = data.operators.total + data.operands.total;
     if (data.length === 0) {
         nilHalsteadMetrics(data);
@@ -354,7 +356,7 @@ function calculateHalsteadMetrics (data) {
     }
 }
 
-function nilHalsteadMetrics (data) {
+function nilHalsteadMetrics(data) {
     data.vocabulary =
         data.difficulty =
             data.volume =
@@ -364,14 +366,14 @@ function nilHalsteadMetrics (data) {
                             0;
 }
 
-function sumMaintainabilityMetrics (sums, indices, data) {
+function sumMaintainabilityMetrics(sums, indices, data) {
     sums[indices.loc] += data.sloc.logical;
     sums[indices.cyclomatic] += data.cyclomatic;
     sums[indices.effort] += data.halstead.effort;
     sums[indices.params] += data.params;
 }
 
-function calculateMaintainabilityIndex (averageEffort, averageCyclomatic, averageLoc, settings) {
+function calculateMaintainabilityIndex(averageEffort, averageCyclomatic, averageLoc, settings) {
     if (averageCyclomatic === 0) {
         throw new Error('Encountered function with cyclomatic complexity zero!');
     }
