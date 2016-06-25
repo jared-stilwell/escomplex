@@ -7,6 +7,9 @@ var debug = require('debug')('escomplex:module');
 
 exports.analyse = analyse;
 
+var processOperators = processOperatorsOrOperands('operators');
+var processOperands = processOperatorsOrOperands('operands');
+
 function analyse (ast, walker, options) {
     // TODO: Asynchronise
 
@@ -40,8 +43,8 @@ function analyse (ast, walker, options) {
     function processNode (node, syntax) {
         processLloc(node, convertToNumber(syntax.lloc, node), currentReport);
         processCyclomatic(node, convertToNumber(syntax.cyclomatic, node), currentReport);
-        processOperators(node, syntax, currentReport);
-        processOperands(node, syntax, currentReport);
+        processOperators(node, syntax.operators, currentReport);
+        processOperands(node, syntax.operands, currentReport);
 
         if (processDependencies(node, syntax, clearDependencies)) {
             // HACK: This will fail with async or if other syntax than CallExpression introduces dependencies.
@@ -172,99 +175,106 @@ function processCyclomatic (node, cyclomaticAmount, currentReport) {
 }
 
 
-function incrementCounter (node, syntax, name, incrementFn, currentReport) {
-    var amount = syntax[name];
+/**
+ * refactoring of processOperators and processOperands
+ * @param type
+ * @returns {processOperators}
+ */
+function processOperatorsOrOperands(type) {
+    var buildReport = function (actualReport, identifier) {
+        // incrementHalsteadItems(actualReport, type, identifier);
+        /*
+         function incrementHalsteadItems (actualReport, type, identifier) {
+         incrementDistinctHalsteadItems(baseReport, metric, identifier);
+         incrementTotalHalsteadItems(baseReport, metric);
+         }
 
-    if (check.number(amount)) {
-        incrementFn(currentReport, amount);
-    } else if (check.function(amount)) {
-        incrementFn(currentReport, amount(node));
-    }
-}
+         // make total first
+         */
+        //incrementTotalHalsteadItems(report, type);
+        actualReport.halstead[type].total += 1;
+        /*
 
-function incrementLogicalSloc (currentReport, amount) {
-    debug('incrementing sloc by ' + amount);
-    report.aggregate.sloc.logical += amount;
+         function incrementDistinctHalsteadItems (baseReport, metric, identifier) {
+         if (Object.prototype.hasOwnProperty(identifier)) {
+         // Avoid clashes with built-in property names.
+         incrementDistinctHalsteadItems(baseReport, metric, '_' + identifier);
+         } else if (isHalsteadMetricDistinct(baseReport, metric, identifier)) {
+         recordDistinctHalsteadMetric(baseReport, metric, identifier);
+         incrementHalsteadMetric(baseReport, metric, 'distinct');
+         }
+         }
 
-    if (currentReport) {
-        currentReport.sloc.logical += amount;
-    }
-}
+         function isHalsteadMetricDistinct (baseReport, metric, identifier) {
+         return baseReport.halstead[metric].identifiers.indexOf(identifier) === -1;
+         }
+
+         // first if could moved up
+         // isHalsteadMetricDistinct(baseReport, metric, identifier) return to negate with return
+         */
+        if (actualReport.halstead[type].identifiers.indexOf(identifier) !== -1) {
+            return;
+        }
+
+        // recordDistinctHalsteadMetric(actualReport, type, saveIdentifier);
+        actualReport.halstead[type].identifiers.push(identifier);
 
 
-function incrementCyclomatic (currentReport, amount) {
-    report.aggregate.cyclomatic += amount;
+        // incrementHalsteadMetric(actualReport, type, 'distinct');
+        actualReport.halstead[type].distinct += 1;
+    };
 
-    if (currentReport) {
-        currentReport.cyclomatic += amount;
-    }
-}
-
-function processOperators (node, syntax, currentReport) {
-    processHalsteadMetric(node, syntax, 'operators', currentReport);
-}
-
-function processOperands (node, syntax, currentReport) {
-    processHalsteadMetric(node, syntax, 'operands', currentReport);
-}
-
-function processHalsteadMetric (node, syntax, metric, currentReport) {
-    if (check.array(syntax[metric])) {
-        syntax[metric].forEach(function (s) {
-            var identifier;
-
-            if (check.function(s.identifier)) {
-                identifier = s.identifier(node);
-            } else {
-                identifier = s.identifier;
+        return function(node, operatorsOrOperands, currentReport) {
+            if (!Array.isArray(operatorsOrOperands)) {
+                return;
             }
+            /**
+             * oooItem is the short variant of operatorsOrOperandsItem
+             */
+            operatorsOrOperands.forEach(function (oooItem) {
+                /**
+                 var identifier;
 
-            if (check.function(s.filter) === false || s.filter(node) === true) {
-                halsteadItemEncountered(currentReport, metric, identifier);
-            }
-        });
-    }
-}
+                 if (check.function(s.identifier)) {
+                    identifier = s.identifier(node);
+                } else {
+                    identifier = s.identifier;
+                }
+                 refactored to
+                 */
+                var identifier = check.function(oooItem.identifier) ? oooItem.identifier(node) : oooItem.identifier;
+                //identifier = Object.prototype.hasOwnProperty(identifier) ? '_' + identifier : identifier;
+                /*
+                 if (check.function(s.filter) === false || s.filter(node) === true) {
+                 halsteadItemEncountered(currentReport, metric, identifier);
+                 }
 
-function halsteadItemEncountered (currentReport, metric, identifier) {
-    if (currentReport) {
-        incrementHalsteadItems(currentReport, metric, identifier);
-    }
+                 !a || b -> a && !b
+                 */
+                if (check.function(oooItem.filter) && !oooItem.filter(node)) {
+                    return;
+                }
+                /*
+                 function halsteadItemEncountered (currentReport, metric, identifier) {
+                 if (currentReport) {
+                 incrementHalsteadItems(currentReport, metric, identifier);
+                 }
 
-    incrementHalsteadItems(report.aggregate, metric, identifier);
-}
+                 incrementHalsteadItems(report.aggregate, metric, identifier);
+                 }
 
-function incrementHalsteadItems (baseReport, metric, identifier) {
-    incrementDistinctHalsteadItems(baseReport, metric, identifier);
-    incrementTotalHalsteadItems(baseReport, metric);
-}
+                 var actualReport = currentReport ? currentReport || report.aggregate
+                 incrementHalsteadItems(actualReport, metric, identifier);
+                 */
+                // halsteadItemEncountered(currentReport, type, identifier);
+                if (currentReport) {
+                    buildReport(currentReport, identifier);
+                }
+                buildReport(report.aggregate, identifier);
 
-function incrementDistinctHalsteadItems (baseReport, metric, identifier) {
-    if (Object.prototype.hasOwnProperty(identifier)) {
-        // Avoid clashes with built-in property names.
-        incrementDistinctHalsteadItems(baseReport, metric, '_' + identifier);
-    } else if (isHalsteadMetricDistinct(baseReport, metric, identifier)) {
-        recordDistinctHalsteadMetric(baseReport, metric, identifier);
-        incrementHalsteadMetric(baseReport, metric, 'distinct');
-    }
-}
 
-function isHalsteadMetricDistinct (baseReport, metric, identifier) {
-    return baseReport.halstead[metric].identifiers.indexOf(identifier) === -1;
-}
-
-function recordDistinctHalsteadMetric (baseReport, metric, identifier) {
-    baseReport.halstead[metric].identifiers.push(identifier);
-}
-
-function incrementHalsteadMetric (baseReport, metric, type) {
-    if (baseReport) {
-        baseReport.halstead[metric][type] += 1;
-    }
-}
-
-function incrementTotalHalsteadItems (baseReport, metric) {
-    incrementHalsteadMetric(baseReport, metric, 'total');
+            });
+        }
 }
 
 function processDependencies (node, syntax, clearDependencies) {
