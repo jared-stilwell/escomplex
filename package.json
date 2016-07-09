@@ -55,7 +55,7 @@
     "mocha": "2.5.3",
     "mocha-lcov-reporter": "^1.2.0",
     "mockery": "1.7.0",
-    "nyc": "^6.6.1",
+    "nyc": "^7.0.0",
     "sinon": "1.17.4",
     "spooks": "2.0.0",
     "snyk": "1.16.0"
