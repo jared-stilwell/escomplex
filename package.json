@@ -49,7 +49,7 @@
   "devDependencies": {
     "acorn": "^3.2.0",
     "chai": "3.5.0",
-    "coveralls": "^2.11.9",
+    "coveralls": "^2.11.10",
     "eslint": "3.0.0",
     "esprima": "^2.7.2",
     "mocha": "2.5.3",
