@@ -48,7 +48,7 @@
     "minimatch": "^3.0.2"
   },
   "devDependencies": {
-    "acorn": "^3.2.0",
+    "acorn": "^4.0.1",
     "chai": "3.5.0",
     "coveralls": "^2.11.11",
     "eslint": "^3.0.1",
