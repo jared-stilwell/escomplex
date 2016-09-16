@@ -43,7 +43,7 @@
   "dependencies": {
     "check-types": "7.0.0",
     "debug": "^2.2.0",
-    "espree": "^3.1.5",
+    "espree": "^3.2.0",
     "lodash": "^4.13.1",
     "minimatch": "^3.0.2"
   },
