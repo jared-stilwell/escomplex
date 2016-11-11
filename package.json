@@ -51,7 +51,7 @@
     "acorn": "^3.2.0",
     "chai": "3.5.0",
     "coveralls": "^2.11.11",
-    "eslint": "^3.0.1",
+    "eslint": "^3.10.0",
     "esprima": "^2.7.2",
     "mocha": "3.0.0",
     "mocha-lcov-reporter": "^1.2.0",
