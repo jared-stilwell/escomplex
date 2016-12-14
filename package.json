@@ -42,7 +42,7 @@
   ],
   "dependencies": {
     "check-types": "7.0.0",
-    "debug": "^2.2.0",
+    "debug": "^2.4.1",
     "espree": "^3.1.5",
     "lodash": "^4.13.1",
     "minimatch": "^3.0.2"
