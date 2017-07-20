@@ -46,7 +46,7 @@ The first argument, `source`, must be either a string or an array of objects. If
 
 ##### options
 
-The third argument, `options`,
+The second argument, `options`,
 is an optional object
 containing properties that modify
 some of the complexity calculations:
