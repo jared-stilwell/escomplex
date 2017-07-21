@@ -35,7 +35,7 @@ The `analyse` function is used to convert the source code of one or more modules
 into one or more corresponding report objects containing metrics.
 
 ```javascript
-const result = escomplex.analyse(source, options);
+const result = escomplex.analyse(source, options, parserOptions);
 ```
 
 #### Arguments
@@ -46,7 +46,7 @@ The first argument, `source`, must be either a string or an array of objects. If
 
 ##### options
 
-The third argument, `options`,
+The second argument, `options`,
 is an optional object
 containing properties that modify
 some of the complexity calculations:
@@ -79,6 +79,14 @@ some of the complexity calculations:
 * `options.noCoreSize`:
   Skips creating the visibility matrix and calculating the coreSize,
   which can be very expensive for large projects
+
+#### parserOptions
+
+Espree is used to parse the JavaScript AST.
+By default, it uses the options `{ ecmaVersion: 8, loc: true }`.
+The third argument, `parserOptions` is an optional object containing options
+passed to Espree to parse the JavaScript AST.
+This will be merged with the default parser options.
 
 ### Result Format
 The `analyze` function returns
