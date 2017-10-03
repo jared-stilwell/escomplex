@@ -57,7 +57,7 @@
   "devDependencies": {
     "acorn": "^5.0.0",
     "chai": "4.1.0",
-    "mocha": "^3.4.2",
+    "mocha": "^4.0.0",
     "mockery": "2.1.0",
     "sinon": "^2.0.0",
     "spooks": "2.0.0",
