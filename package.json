@@ -61,7 +61,7 @@
     "mockery": "2.1.0",
     "sinon": "^2.0.0",
     "spooks": "2.0.0",
-    "standard": "^10.0.0"
+    "standard": "^11.0.0"
   },
   "scripts": {
     "lint": "standard",
