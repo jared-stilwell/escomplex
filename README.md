@@ -140,7 +140,7 @@ that looks like the following:
 
 The meaning of those values, briefly,
 is as follows
-(see [metrics](#metrics)
+(see [metrics](https://github.com/escomplex/escomplex/blob/master/METRICS.md)
 for more information
 on each one):
 
