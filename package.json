@@ -55,7 +55,7 @@
     "minimatch": "^3.0.2"
   },
   "devDependencies": {
-    "acorn": "^5.0.0",
+    "acorn": "^6.0.0",
     "chai": "4.1.0",
     "mocha": "^3.4.2",
     "mockery": "2.1.0",
