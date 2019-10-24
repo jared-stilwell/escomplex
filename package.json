@@ -41,10 +41,11 @@
     "metrics"
   ],
   "dependencies": {
-    "debug": "^2.6.2",
-    "espree": "^3.4.3",
-    "esprima": "^4.0.0",
+    "debug": "^4.1.1",
+    "espree": "^6.1.2",
+    "esprima": "^4.0.1",
     "lodash.assign": "^4.2.0",
+    "lodash.get": "^4.4.2",
     "lodash.isfunction": "^3.0.8",
     "lodash.isnil": "^4.0.0",
     "lodash.isnumber": "^3.0.3",
@@ -55,11 +56,11 @@
     "minimatch": "^3.0.2"
   },
   "devDependencies": {
-    "acorn": "^5.0.0",
-    "chai": "4.1.0",
-    "mocha": "^3.4.2",
-    "mockery": "2.1.0",
-    "sinon": "^2.0.0",
+    "acorn": "^7.1.0",
+    "chai": "^4.2.0",
+    "mocha": "^6.2.2",
+    "mockery": "^2.1.0",
+    "sinon": "^7.5.0",
     "spooks": "2.0.0",
     "standard": "^10.0.0"
   },

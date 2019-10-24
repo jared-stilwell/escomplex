@@ -1,39 +1,8 @@
 'use strict'
 
-const _merge = require('lodash.merge')
 const _isString = require('lodash.isstring')
 const safeName = require('../safeName')
-const safeArray = require('../safeArray')
-
-const DEFAULTS = {
-  assignableName: undefined,
-  children: safeArray(undefined),
-  cyclomatic: 0,
-  lloc: 0,
-  newScope: undefined,
-  dependencies: undefined
-}
-
-const operators = properties => properties.map(property => {
-  if (property && typeof property.identifier !== 'undefined') {
-    return property
-  }
-  return {
-    identifier: property
-  }
-})
-
-const operands =
-  identifiers => identifiers.map(identifier => ({identifier}))
-
-function defineSyntax (spec) {
-  const computedSpec = {
-    children: safeArray(spec.children),
-    operands: operands(safeArray(spec.operands)),
-    operators: operators(safeArray(spec.operators))
-  }
-  return _merge({}, DEFAULTS, spec, computedSpec)
-}
+const defineSyntax = require('./define-syntax')
 
 const ArrayExpression = settings => defineSyntax({
   operators: '[]',
@@ -231,7 +200,7 @@ const FunctionDeclaration = settings => defineSyntax({
 
 const FunctionExpression = settings => defineSyntax({
   operators: 'function',
-  operands: node => safeName(node.id),
+  operands: node => safeName({name: node.id}),
   children: [ 'params', 'body' ],
   newScope: true
 })

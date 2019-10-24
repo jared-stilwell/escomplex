@@ -43,11 +43,13 @@ function analyse (ast, walker, options) {
   calculateMetrics(settings)
 
   function processNode (node, syntax) {
+    debug(`process node: ${node.type}`)
     processLloc(node, syntax, currentReport)
     processCyclomatic(node, syntax, currentReport)
-    processOperators(node, syntax, currentReport)
-    processOperands(node, syntax, currentReport)
+    processHalsteadMetric(node, syntax, 'operators', currentReport)
+    processHalsteadMetric(node, syntax, 'operands', currentReport)
     if (processDependencies(node, syntax, clearDependencies)) {
+      debug('Processed dependencies')
       // HACK: This will fail with async or if other syntax than CallExpression introduces dependencies.
       // TODO: Come up with a less crude approach.
       clearDependencies = false
@@ -134,14 +136,6 @@ function incrementCyclomatic (currentReport, amount) {
   }
 }
 
-function processOperators (node, syntax, currentReport) {
-  processHalsteadMetric(node, syntax, 'operators', currentReport)
-}
-
-function processOperands (node, syntax, currentReport) {
-  processHalsteadMetric(node, syntax, 'operands', currentReport)
-}
-
 function processHalsteadMetric (node, syntax, metric, currentReport) {
   if (Array.isArray(syntax[metric])) {
     syntax[metric].forEach(s => {
@@ -151,7 +145,7 @@ function processHalsteadMetric (node, syntax, metric, currentReport) {
       } else {
         identifier = s.identifier
       }
-      if (_isFunction(s.filter) === false || s.filter(node) === true) {
+      if ((_isFunction(s.filter) === false || s.filter(node) === true) && (identifier !== undefined)) {
         halsteadItemEncountered(currentReport, metric, identifier)
       }
     })
@@ -167,37 +161,22 @@ function halsteadItemEncountered (currentReport, metric, identifier) {
 
 function incrementHalsteadItems (baseReport, metric, identifier) {
   incrementDistinctHalsteadItems(baseReport, metric, identifier)
-  incrementTotalHalsteadItems(baseReport, metric)
+  debug(`incrementing halstead total ${metric} by 1`)
+  baseReport.halstead[metric].total += 1
 }
 
 function incrementDistinctHalsteadItems (baseReport, metric, identifier) {
+  const identifiers = baseReport.halstead[metric].identifiers
+
+  // Avoid clashes with built-in property names.
   if (Object.prototype.hasOwnProperty(identifier)) {
-    // Avoid clashes with built-in property names.
-    incrementDistinctHalsteadItems(baseReport, metric, '_' + identifier)
-  } else {
-    if (isHalsteadMetricDistinct(baseReport, metric, identifier)) {
-      recordDistinctHalsteadMetric(baseReport, metric, identifier)
-      incrementHalsteadMetric(baseReport, metric, 'distinct')
-    }
+    identifier = `_${identifier}`
   }
-}
-
-function isHalsteadMetricDistinct (baseReport, metric, identifier) {
-  return baseReport.halstead[metric].identifiers.indexOf(identifier) === -1
-}
-
-function recordDistinctHalsteadMetric (baseReport, metric, identifier) {
-  baseReport.halstead[metric].identifiers.push(identifier)
-}
-
-function incrementHalsteadMetric (baseReport, metric, type) {
-  if (baseReport) {
-    baseReport.halstead[metric][type] += 1
+  if (identifiers.indexOf(identifier) === -1) {
+    debug(`incrementing halstead distinct ${metric} by 1`)
+    identifiers.push(identifier)
+    baseReport.halstead[metric].distinct += 1
   }
-}
-
-function incrementTotalHalsteadItems (baseReport, metric) {
-  incrementHalsteadMetric(baseReport, metric, 'total')
 }
 
 function processDependencies (node, syntax, clearDependencies) {

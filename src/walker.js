@@ -41,13 +41,16 @@ function walk (tree, settings, callbacks) {
 
   function visitNode (node, assignedName) {
     if (_isObject(node)) {
-      debug('node type: ' + node.type)
       const syntax = getSyntax(node.type)
-      debug('syntax: ' + JSON.stringify(syntax))
       if (_isObject(syntax)) {
         callbacks.processNode(node, syntax)
-        if (syntax.newScope) {
+        if (_isFunction(syntax.newScope) ? syntax.newScope(node) : syntax.newScope) {
           callbacks.createScope(safeName(node.id, assignedName), node.loc, node.params.length)
+        }
+        if (syntax.methodName) {
+          node.value.id = syntax.methodName(node)
+          debug('Writing method name into child function expression')
+          debug(node.value.id)
         }
         visitChildren(node)
         if (syntax.newScope) {
